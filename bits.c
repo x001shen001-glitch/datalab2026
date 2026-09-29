@@ -19,7 +19,7 @@
  * Difficulty: 1
  */
 int bitAnd(int x, int y) {
-    return 2;
+    return ~(~x | ~y);
 }
 
 /*
@@ -30,7 +30,7 @@ int bitAnd(int x, int y) {
  *   Difficulty: 1
  */
 int bitXor(int x, int y) {
-    return 2;
+    return ~(x & y) & ~(~x & ~y);
 }
 
 /*
@@ -50,7 +50,18 @@ int bitXor(int x, int y) {
  *   1 if x and y have the same sign , 0 otherwise.
  */
 int samesign(int x, int y) {
-    return 2;
+    int rst = 2;
+    if(!x){
+        rst = !y;
+    } else if(!y){
+        rst = !x;
+    } else{
+        int signx = x >> 31;
+        int signy = y >> 31;
+        rst = !(signx ^ signy);
+    }
+
+    return rst;
 }
 
 /*
@@ -63,7 +74,14 @@ int samesign(int x, int y) {
  *   Difficulty: 4
  */
 int logtwo(int v) {
-    return 2;
+    int r = 0;
+    int s;
+    s = ((v >> 16) > 0) << 4;  r = r | s;  v = v >> s; //这里左移4位是把1转换为16，当做if来用
+    s = ((v >> 8) > 0) << 3;  r = r | s;  v = v >> s; //这里v只剩后16位，再次分前8后8
+    s = ((v >> 4) > 0) << 2;  r = r | s;  v = v >> s;
+    s = ((v >> 2) > 0) << 1;  r = r | s;  v = v >> s;
+    s = ((v >> 1) > 0);  r = r | s;
+    return r;
 }
 
 /*
@@ -76,7 +94,10 @@ int logtwo(int v) {
  *    Difficulty: 2
  */
 int byteSwap(int x, int n, int m) {
-    return 2;
+    int nB = n << 3;
+    int mB = m << 3;
+    int d = ((x >> nB) ^ (x >> mB)) & 0xFF;
+    return x ^ (d << nB) ^ (d << mB);
 }
 
 /*
@@ -88,7 +109,12 @@ int byteSwap(int x, int n, int m) {
  *   Difficulty: 3
  */
 unsigned reverse(unsigned v) {
-    return 2;
+    unsigned int r = 0;
+    for(int i = 0; i != 32; i++){
+        r = (r << 1) | (v & 1);
+        v = v >> 1;
+    }
+    return r;
 }
 
 /*
@@ -100,7 +126,11 @@ unsigned reverse(unsigned v) {
  *   Difficulty: 3
  */
 int logicalShift(int x, int n) {
-    return 2;
+    x = x >> n;
+    int d = 0x80000000;
+    d = ~(d >> n << 1);
+    x = x & d;
+    return x;
 }
 
 /*
@@ -112,7 +142,15 @@ int logicalShift(int x, int n) {
  *   Difficulty: 4
  */
 int leftBitCount(int x) {
-    return 2;
+    int v = ~x;
+    int s = 0;
+    int r = 0;
+    s = (v >> 16 != 0) << 4; r = r | s; v = v >> s; 
+    s = (v >> 8 != 0) << 3; r = r | s; v = v >> s; 
+    s = (v >> 4 != 0) << 2; r = r | s; v = v >> s; 
+    s = (v >> 2 != 0) << 1; r = r | s; v = v >> s; 
+    s = (v >> 1 != 0); r = r | s; v = v >> s; 
+    return 32 + ~r + !v; // x = -1时会少一个，用!v来判断
 }
 
 /*
@@ -139,7 +177,12 @@ unsigned float_i2f(int x) {
  *   Difficulty: 4
  */
 unsigned floatScale2(unsigned uf) {
-    return 2;
+    unsigned exp = (uf >> 23) & 0xFF;
+    if (exp == 255) return uf;
+    if (exp == 0)   return (uf & 0x80000000u) | (uf << 1); //(uf & 0x80000000u) | 是用来取首位符号位
+    if (exp == 254)
+        if (uf & 0x7FFFFF) return (uf & 0x80000000u) | 0x7F800000u;
+    return uf + (1u << 23);
 }
 
 /*
@@ -173,5 +216,8 @@ int float64_f2i(unsigned uf1, unsigned uf2) {
  *   Difficulty: 4
  */
 unsigned floatPower2(int x) {
-    return 2;
+    if (x >= 128)   return 0x7F800000;   /* +INF */
+    if (x <= -150)  return 0;
+    if (x >= -126)  return (x + 127) << 23;  /* 规格化：(x + 127) 挪到 bit23 起 */
+    return 1 << (149 + x);                  /* 非规格化：x=-149→1, -148→2, -127→0x400000 即1左移位（149+x）*/
 }
