@@ -162,7 +162,27 @@ int leftBitCount(int x) {
  *   Difficulty: 4
  */
 unsigned float_i2f(int x) {
-    return 2;
+    unsigned ux = x;
+    unsigned sign = 0;
+    int k = 0;
+    unsigned t, frac, rest, half;
+
+    if (!x) return 0;
+    if (x < 0) { sign = 0x80000000u; ux = ~ux + 1; }
+
+    t = ux;
+    while (t > 1) { t = t >> 1; k = k + 1; }
+
+    if (k < 24) {
+        frac = ux << (23 - k);
+    } else {
+        t = k - 23;
+        frac = ux >> t;
+        half = 1 << (t - 1);
+        rest = ux - (frac << t);
+        frac = frac + ((rest > half) | ((rest == half) & (frac & 1)));
+    }
+    return sign | ((k + 127 + (frac >> 24)) << 23) | (frac & 0x7FFFFF);
 }
 
 /*
@@ -199,7 +219,21 @@ unsigned floatScale2(unsigned uf) {
  *   Difficulty: 3
  */
 int float64_f2i(unsigned uf1, unsigned uf2) {
-    return 2;
+    unsigned sign = uf2 >> 31;
+    unsigned exp = (uf2 >> 20) & 0x7FF;
+    unsigned val = 0x80000000u | ((uf2 & 0xFFFFF) << 11) | (uf1 >> 21);
+
+    if (exp < 1023) return 0;
+    if (exp > 1054) return 0x80000000;
+
+    val = val >> (1054 - exp);
+
+    if (sign) {
+        if (val > 0x80000000u) return 0x80000000;
+        return ~val + 1;
+    }
+    if (val > 0x7FFFFFFF) return 0x80000000;
+    return val;
 }
 
 /*
